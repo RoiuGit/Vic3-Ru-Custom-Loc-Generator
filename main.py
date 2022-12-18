@@ -55,25 +55,22 @@ layout = [[sg.Text('Static Tag List'), sg.Input(), sg.FileBrowse(key='input_stat
           [sg.Text('Dynamic Tag List'), sg.Input(), sg.FileBrowse(key='input_dynamic_tags')],
           [sg.Text('Custom Tag Localization'), sg.Input(), sg.FileBrowse(key='custom_tag_loc_file')],
           [sg.Text('Dynamic Names File'), sg.Input(), sg.FileBrowse(key='dynamic_names_file')],
-          [sg.Text('Custom Localization'), sg. Input(), sg.FileBrowse(key='custom_tag_loc_file')],
+          [sg.Text('Custom Localization'), sg. Input(), sg.FileBrowse(key='custom_loc_file')],
           [sg.Button('Submit')]]
 
-# Create the Window
 window = sg.Window('Vic3 Ru Loc Gen', layout)
-# Event Loop to process "events" and get the "values" of the inputs
 while True:
     event, values = window.read()
-    if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
+    if event == sg.WIN_CLOSED:
         break
     if event == 'Submit':
         f1_path = values['input_static_tags']
         f2_path = values['input_dynamic_tags']
         f3_path = values['custom_tag_loc_file']
         f4_path = values['dynamic_names_file']
-        f5_path = values['custom_tag_loc_file']
+        f5_path = values['custom_loc_file']
         break
 window.close()
-
 try:
     static_tag_file = open(f1_path, 'r', encoding='utf-8')
     static_tag_array = static_tag_file.readlines()
@@ -93,7 +90,6 @@ try:
 except FileNotFoundError:
     print(f3_path)
     custom_tag_loc = ''
-    print('There is not custom localization file')
 try:
     dynamic_names_file = open(f4_path, 'r', encoding='utf-8')
     dynamic_names = dynamic_names_file.read()
@@ -105,7 +101,7 @@ try:
     custom_loc = custom_loc_file.read()
     custom_loc_file.close()
 except FileNotFoundError:
-    custom_loc = ''
+    custom_loc = 'def'
 output_file = open('output.txt', 'w', encoding="utf-8")
 static_tags = []
 dynamic_tags = []
@@ -121,12 +117,14 @@ declensions = ["RP", "DP", "VP", "TP", "PP"]
 comments = {'RP': "# genitive", "DP": "# dative", "VP": "# accusative", "TP": "# instrumental",
             "PP": "# prepositional"}
 for declension in declensions:
-    output_file.write(comments[declension].upper() + '\nRU_CL_' + declension + ' = {\n')
+    output = ''
     for static_tag in static_tags:
         if static_template(static_tag, declension, comments, custom_tag_loc) is not None:
-            output_file.write(static_template(static_tag, declension, comments, custom_tag_loc))
+            output = output + static_template(static_tag, declension, comments, custom_tag_loc)
     for dynamic_tag in dynamic_tags:
         if dynamic_template(dynamic_tag, declension, comments, custom_tag_loc, dynamic_names) is not None:
-            output_file.write(dynamic_template(dynamic_tag, declension, comments, custom_tag_loc, dynamic_names))
-    output_file.write('\n}\n')
+            output = output + dynamic_template(dynamic_tag, declension, comments, custom_tag_loc, dynamic_names)
+    default_tag = '\n\ttext = {\n\t\tlocalization_key = RU_CL_' + declension + '_DEFAULT'
+    custom_loc = custom_loc.replace(default_tag, output + default_tag)
+output_file.write(custom_loc)
 output_file.close()
